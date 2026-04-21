@@ -13,9 +13,9 @@ if not firebase_json:
     raise Exception("FIREBASE_CREDENTIALS não configurado")
 
 cred_dict = json.loads(firebase_json)
-cred = credentials.Certificate(cred_dict)
 
 if not firebase_admin._apps:
+    cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
 
 
@@ -28,7 +28,7 @@ def home():
 
 
 # -------------------------
-# 📱 PUSH PARA 1 USUÁRIO (COM POPUP)
+# 📱 PUSH INDIVIDUAL
 # -------------------------
 @app.route("/send", methods=["POST"])
 def send_notification():
@@ -39,7 +39,7 @@ def send_notification():
     body = data.get("body")
 
     if not token or not title or not body:
-        return jsonify({"error": "Campos obrigatórios: token, title, body"}), 400
+        return jsonify({"error": "Campos obrigatórios"}), 400
 
     message = messaging.Message(
         notification=messaging.Notification(
@@ -47,13 +47,10 @@ def send_notification():
             body=body
         ),
         token=token,
-
-        # 🔥 FORÇA POPUP ANDROID
         android=messaging.AndroidConfig(
             priority="high",
             notification=messaging.AndroidNotification(
                 sound="default",
-                priority="max",
                 channel_id="default"
             )
         )
@@ -61,49 +58,43 @@ def send_notification():
 
     try:
         response = messaging.send(message)
-        return jsonify({
-            "success": True,
-            "message_id": response
-        })
+        return jsonify({"success": True, "message_id": response})
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # -------------------------
-# 📡 PUSH PARA VÁRIOS USUÁRIOS (COM POPUP)
+# 📡 PUSH MÚLTIPLO (SEM DUPLICAR)
 # -------------------------
 @app.route("/send-multiple", methods=["POST"])
 def send_multiple():
     data = request.json
 
-    tokens = data.get("tokens")
+    tokens = data.get("tokens", [])
     title = data.get("title")
     body = data.get("body")
 
     if not tokens or not title or not body:
-        return jsonify({"error": "Campos obrigatórios: tokens, title, body"}), 400
+        return jsonify({"error": "Campos obrigatórios"}), 400
+
+    # 🔥 REMOVE DUPLICADOS
+    unique_tokens = list(set(tokens))
 
     success = 0
     failed = 0
     errors = []
 
-    for token in tokens:
+    for token in unique_tokens:
         message = messaging.Message(
             notification=messaging.Notification(
                 title=title,
                 body=body
             ),
             token=token,
-
-            # 🔥 FORÇA POPUP ANDROID
             android=messaging.AndroidConfig(
                 priority="high",
                 notification=messaging.AndroidNotification(
                     sound="default",
-                    priority="max",
                     channel_id="default"
                 )
             )
@@ -118,8 +109,8 @@ def send_multiple():
 
     return jsonify({
         "success": True,
-        "success_count": success,
-        "failure_count": failed,
+        "sent": success,
+        "failed": failed,
         "errors": errors
     })
 
