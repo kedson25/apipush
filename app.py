@@ -15,22 +15,21 @@ if not firebase_json:
 cred_dict = json.loads(firebase_json)
 cred = credentials.Certificate(cred_dict)
 
-# Evita erro de múltiplas inicializações no Render
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 
-# ----------------------------
-# 🏠 ROTA TESTE
-# ----------------------------
+# -------------------------
+# 🏠 TESTE
+# -------------------------
 @app.route("/", methods=["GET"])
 def home():
     return "API rodando no Render 🚀"
 
 
-# ----------------------------
-# 📱 ENVIAR PARA 1 DISPOSITIVO
-# ----------------------------
+# -------------------------
+# 📱 PUSH PARA 1 USUÁRIO (COM POPUP)
+# -------------------------
 @app.route("/send", methods=["POST"])
 def send_notification():
     data = request.json
@@ -47,7 +46,17 @@ def send_notification():
             title=title,
             body=body
         ),
-        token=token
+        token=token,
+
+        # 🔥 FORÇA POPUP ANDROID
+        android=messaging.AndroidConfig(
+            priority="high",
+            notification=messaging.AndroidNotification(
+                sound="default",
+                priority="max",
+                channel_id="default"
+            )
+        )
     )
 
     try:
@@ -63,10 +72,9 @@ def send_notification():
         }), 500
 
 
-# ----------------------------
-# 📡 ENVIAR PARA VÁRIOS DISPOSITIVOS
-# (VERSÃO ESTÁVEL - LOOP)
-# ----------------------------
+# -------------------------
+# 📡 PUSH PARA VÁRIOS USUÁRIOS (COM POPUP)
+# -------------------------
 @app.route("/send-multiple", methods=["POST"])
 def send_multiple():
     data = request.json
@@ -88,7 +96,17 @@ def send_multiple():
                 title=title,
                 body=body
             ),
-            token=token
+            token=token,
+
+            # 🔥 FORÇA POPUP ANDROID
+            android=messaging.AndroidConfig(
+                priority="high",
+                notification=messaging.AndroidNotification(
+                    sound="default",
+                    priority="max",
+                    channel_id="default"
+                )
+            )
         )
 
         try:
@@ -106,9 +124,9 @@ def send_multiple():
     })
 
 
-# ----------------------------
-# 🚀 START SERVER (LOCAL)
-# ----------------------------
+# -------------------------
+# 🚀 START
+# -------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
