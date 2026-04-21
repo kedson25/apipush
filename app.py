@@ -6,7 +6,7 @@ import json
 
 app = Flask(__name__)
 
-# 🔐 Firebase via variável de ambiente (RECOMENDADO no Render)
+# 🔐 Firebase via variável de ambiente (Render)
 firebase_json = os.environ.get("FIREBASE_CREDENTIALS")
 
 if not firebase_json:
@@ -15,14 +15,22 @@ if not firebase_json:
 cred_dict = json.loads(firebase_json)
 cred = credentials.Certificate(cred_dict)
 
-firebase_admin.initialize_app(cred)
+# Evita erro de múltiplas inicializações no Render
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
 
 
+# ----------------------------
+# 🏠 ROTA TESTE
+# ----------------------------
 @app.route("/", methods=["GET"])
 def home():
     return "API rodando no Render 🚀"
 
 
+# ----------------------------
+# 📱 ENVIAR PARA 1 DISPOSITIVO
+# ----------------------------
 @app.route("/send", methods=["POST"])
 def send_notification():
     data = request.json
@@ -55,6 +63,10 @@ def send_notification():
         }), 500
 
 
+# ----------------------------
+# 📡 ENVIAR PARA VÁRIOS DISPOSITIVOS
+# (VERSÃO ESTÁVEL - LOOP)
+# ----------------------------
 @app.route("/send-multiple", methods=["POST"])
 def send_multiple():
     data = request.json
@@ -66,28 +78,37 @@ def send_multiple():
     if not tokens or not title or not body:
         return jsonify({"error": "Campos obrigatórios: tokens, title, body"}), 400
 
-    message = messaging.MulticastMessage(
-        notification=messaging.Notification(
-            title=title,
-            body=body
-        ),
-        tokens=tokens
-    )
+    success = 0
+    failed = 0
+    errors = []
 
-    try:
-        response = messaging.send_multicast(message)
-        return jsonify({
-            "success": True,
-            "success_count": response.success_count,
-            "failure_count": response.failure_count
-        })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+    for token in tokens:
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body
+            ),
+            token=token
+        )
+
+        try:
+            messaging.send(message)
+            success += 1
+        except Exception as e:
+            failed += 1
+            errors.append(str(e))
+
+    return jsonify({
+        "success": True,
+        "success_count": success,
+        "failure_count": failed,
+        "errors": errors
+    })
 
 
+# ----------------------------
+# 🚀 START SERVER (LOCAL)
+# ----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
