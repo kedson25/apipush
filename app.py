@@ -6,6 +6,7 @@ import json
 
 app = Flask(__name__)
 
+# 🔐 Firebase credentials (Render env)
 firebase_json = os.environ.get("FIREBASE_CREDENTIALS")
 
 if not firebase_json:
@@ -18,14 +19,21 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 
-ICON_URL = "https://i.ibb.co/0RdkwbvT/agendar-4.png"
+# 🌐 Imagem (aparece dentro da notificação, NÃO é ícone)
+IMAGE_URL = "https://i.ibb.co/0RdkwbvT/agendar-4.png"
 
 
+# -------------------------
+# 🏠 TESTE
+# -------------------------
 @app.route("/", methods=["GET"])
 def home():
     return "API rodando no Render 🚀"
 
 
+# -------------------------
+# 📱 PUSH INDIVIDUAL
+# -------------------------
 @app.route("/send", methods=["POST"])
 def send_notification():
     data = request.json
@@ -42,8 +50,7 @@ def send_notification():
 
         notification=messaging.Notification(
             title=title,
-            body=body,
-            image=ICON_URL
+            body=body
         ),
 
         android=messaging.AndroidConfig(
@@ -51,16 +58,16 @@ def send_notification():
             notification=messaging.AndroidNotification(
                 sound="default",
                 channel_id="default",
-                icon="ic_notification",
-                image=ICON_URL,
-                color="#FF0000"
+                icon="ic_notification",  # 🔥 ÍCONE LOCAL DO ANDROID
+                color="#FF0000",
+                image=IMAGE_URL  # 🖼️ imagem no corpo da notificação
             )
         ),
 
         data={
             "title": title,
             "body": body,
-            "image": ICON_URL,
+            "image": IMAGE_URL,
             "click_action": "FLUTTER_NOTIFICATION_CLICK"
         }
     )
@@ -72,6 +79,9 @@ def send_notification():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# -------------------------
+# 📡 PUSH MÚLTIPLO
+# -------------------------
 @app.route("/send-multiple", methods=["POST"])
 def send_multiple():
     data = request.json
@@ -95,8 +105,7 @@ def send_multiple():
 
             notification=messaging.Notification(
                 title=title,
-                body=body,
-                image=ICON_URL
+                body=body
             ),
 
             android=messaging.AndroidConfig(
@@ -104,16 +113,16 @@ def send_multiple():
                 notification=messaging.AndroidNotification(
                     sound="default",
                     channel_id="default",
-                    icon="ic_notification",
-                    image=ICON_URL,
-                    color="#FF0000"
+                    icon="ic_notification",  # 🔥 ÍCONE LOCAL
+                    color="#FF0000",
+                    image=IMAGE_URL  # 🖼️ imagem opcional
                 )
             ),
 
             data={
                 "title": title,
                 "body": body,
-                "image": ICON_URL
+                "image": IMAGE_URL
             }
         )
 
@@ -132,6 +141,9 @@ def send_multiple():
     })
 
 
+# -------------------------
+# 🚀 START
+# -------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
