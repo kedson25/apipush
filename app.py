@@ -18,14 +18,10 @@ if not firebase_admin._apps:
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
 
-
-# 🌐 Imagem (aparece dentro da notificação, NÃO é ícone)
+# 🌐 Imagem
 IMAGE_URL = "https://i.ibb.co/0RdkwbvT/agendar-4.png"
 
 
-# -------------------------
-# 🏠 TESTE
-# -------------------------
 @app.route("/", methods=["GET"])
 def home():
     return "API rodando no Render 🚀"
@@ -48,6 +44,7 @@ def send_notification():
     message = messaging.Message(
         token=token,
 
+        # 🔥 APENAS UMA NOTIFICAÇÃO (SEM DUPLICAÇÃO)
         notification=messaging.Notification(
             title=title,
             body=body
@@ -58,15 +55,14 @@ def send_notification():
             notification=messaging.AndroidNotification(
                 sound="default",
                 channel_id="default",
-                icon="ic_notification",  # 🔥 ÍCONE LOCAL DO ANDROID
+                icon="ic_notification",
                 color="#FF0000",
-                image=IMAGE_URL  # 🖼️ imagem no corpo da notificação
+                image=IMAGE_URL
             )
         ),
 
+        # 🔥 DATA APENAS PARA DADOS EXTRAS (SEM TITLE/BODY)
         data={
-            "title": title,
-            "body": body,
             "image": IMAGE_URL,
             "click_action": "FLUTTER_NOTIFICATION_CLICK"
         }
@@ -113,15 +109,13 @@ def send_multiple():
                 notification=messaging.AndroidNotification(
                     sound="default",
                     channel_id="default",
-                    icon="ic_notification",  # 🔥 ÍCONE LOCAL
+                    icon="ic_notification",
                     color="#FF0000",
-                    image=IMAGE_URL  # 🖼️ imagem opcional
+                    image=IMAGE_URL
                 )
             ),
 
             data={
-                "title": title,
-                "body": body,
                 "image": IMAGE_URL
             }
         )
@@ -141,9 +135,6 @@ def send_multiple():
     })
 
 
-# -------------------------
-# 🚀 START
-# -------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
